@@ -1,0 +1,5 @@
+// Copy to Local.xcconfig (git-ignored) and fill in.
+// Find your team ID at developer.apple.com → Account → Membership details.
+
+DEVELOPMENT_TEAM = ABCDE12345
+PRODUCT_BUNDLE_IDENTIFIER = com.yourname.relo

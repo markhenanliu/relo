@@ -1,0 +1,71 @@
+{
+  "description": "Shared test vectors for the clawback estimate. Every implementation (Swift RelocDomain, SQL view, TypeScript) must produce these exact results. Amounts are integer cents. Months served counts complete months only; prorated amounts round half up to the cent. All figures and dates are fictional.",
+  "cases": [
+    {
+      "name": "departure before start date owes everything",
+      "start_date": "2027-03-15", "window_months": 12, "relocation_costs_cents": 850000, "cap_cents": null,
+      "departure": "2027-03-01",
+      "expected": { "months_served": 0, "months_remaining": 12, "prorated_cents": 850000, "owed_cents": 850000, "cap_applied": false, "window_end": "2028-03-15" }
+    },
+    {
+      "name": "one day short of 4 months counts as 3 served",
+      "start_date": "2027-03-15", "window_months": 12, "relocation_costs_cents": 850000, "cap_cents": null,
+      "departure": "2027-07-14",
+      "expected": { "months_served": 3, "months_remaining": 9, "prorated_cents": 637500, "owed_cents": 637500, "cap_applied": false, "window_end": "2028-03-15" }
+    },
+    {
+      "name": "exactly 4 months served owes 8/12, rounded half up",
+      "start_date": "2027-03-15", "window_months": 12, "relocation_costs_cents": 850000, "cap_cents": null,
+      "departure": "2027-07-15",
+      "expected": { "months_served": 4, "months_remaining": 8, "prorated_cents": 566667, "owed_cents": 566667, "cap_applied": false, "window_end": "2028-03-15" }
+    },
+    {
+      "name": "last day inside the window owes 1/12",
+      "start_date": "2027-03-15", "window_months": 12, "relocation_costs_cents": 850000, "cap_cents": null,
+      "departure": "2028-03-14",
+      "expected": { "months_served": 11, "months_remaining": 1, "prorated_cents": 70833, "owed_cents": 70833, "cap_applied": false, "window_end": "2028-03-15" }
+    },
+    {
+      "name": "window end date owes nothing",
+      "start_date": "2027-03-15", "window_months": 12, "relocation_costs_cents": 850000, "cap_cents": null,
+      "departure": "2028-03-15",
+      "expected": { "months_served": 12, "months_remaining": 0, "prorated_cents": 0, "owed_cents": 0, "cap_applied": false, "window_end": "2028-03-15" }
+    },
+    {
+      "name": "long after the window owes nothing",
+      "start_date": "2027-03-15", "window_months": 12, "relocation_costs_cents": 850000, "cap_cents": null,
+      "departure": "2029-06-01",
+      "expected": { "months_served": 12, "months_remaining": 0, "prorated_cents": 0, "owed_cents": 0, "cap_applied": false, "window_end": "2028-03-15" }
+    },
+    {
+      "name": "cap below prorated amount applies",
+      "start_date": "2027-03-15", "window_months": 12, "relocation_costs_cents": 850000, "cap_cents": 400000,
+      "departure": "2027-07-15",
+      "expected": { "months_served": 4, "months_remaining": 8, "prorated_cents": 566667, "owed_cents": 400000, "cap_applied": true, "window_end": "2028-03-15" }
+    },
+    {
+      "name": "cap above prorated amount does not apply",
+      "start_date": "2027-03-15", "window_months": 12, "relocation_costs_cents": 850000, "cap_cents": 1000000,
+      "departure": "2027-05-15",
+      "expected": { "months_served": 2, "months_remaining": 10, "prorated_cents": 708333, "owed_cents": 708333, "cap_applied": false, "window_end": "2028-03-15" }
+    },
+    {
+      "name": "vendor-paid costs raise the basis",
+      "start_date": "2027-03-15", "window_months": 12, "relocation_costs_cents": 1150000, "cap_cents": null,
+      "departure": "2027-09-15",
+      "expected": { "months_served": 6, "months_remaining": 6, "prorated_cents": 575000, "owed_cents": 575000, "cap_applied": false, "window_end": "2028-03-15" }
+    },
+    {
+      "name": "start on the 31st: month completes on the last day of a short month",
+      "start_date": "2027-01-31", "window_months": 12, "relocation_costs_cents": 1200000, "cap_cents": null,
+      "departure": "2027-02-28",
+      "expected": { "months_served": 1, "months_remaining": 11, "prorated_cents": 1100000, "owed_cents": 1100000, "cap_applied": false, "window_end": "2028-01-31" }
+    },
+    {
+      "name": "start on the 31st: one day earlier is not a complete month",
+      "start_date": "2027-01-31", "window_months": 12, "relocation_costs_cents": 1200000, "cap_cents": null,
+      "departure": "2027-02-27",
+      "expected": { "months_served": 0, "months_remaining": 12, "prorated_cents": 1200000, "owed_cents": 1200000, "cap_applied": false, "window_end": "2028-01-31" }
+    }
+  ]
+}

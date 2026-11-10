@@ -1,0 +1,4 @@
+#include "Base.xcconfig"
+
+// Debug builds talk to the local Supabase stack (see supabase/README in the repo root docs).
+RELO_ENVIRONMENT = local
