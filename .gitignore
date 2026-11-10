@@ -1,0 +1,31 @@
+# Real personal documents (relocation agreements, receipts) never go in the repo
+private/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+
+# Xcode / Swift
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.build/
+.swiftpm/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+coverage/
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# XcodeGen output (project.yml is the source of truth) and personal signing config
+apps/ios/*.xcodeproj/
+apps/ios/Config/Local.xcconfig
