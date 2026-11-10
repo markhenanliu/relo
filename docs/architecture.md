@@ -49,7 +49,7 @@ Abbreviations used in the diagram: OCR (Optical Character Recognition, reading t
 |---|---|---|
 | Client platforms | Native SwiftUI iPhone app + Next.js web companion | [0002](adr/0002-swiftui-ios-plus-nextjs-web.md) |
 | Backend | Supabase: Postgres, Auth, Storage, Edge Functions | [0003](adr/0003-supabase-backend.md) |
-| Offline and sync | Local SQLite on device + sync engine (PowerSync, pending a time-boxed spike; fallback: GRDB + custom outbox) | [0004](adr/0004-offline-first-sync.md) |
+| Offline and sync | Local SQLite on device + PowerSync sync engine (accepted after spike; field-level merge, last upload wins) | [0004](adr/0004-offline-first-sync.md) |
 | Document extraction | Receipts on device first (Vision + Foundation Models); policies in the cloud (Claude API), quote-verified, human-confirmed | [0005](adr/0005-document-extraction.md) |
 | Repo shape | Monorepo: `apps/ios`, `apps/web`, `supabase/`, shared JSON Schemas | §10 |
 
@@ -196,7 +196,9 @@ Summary (details and alternatives in [ADR-0004](adr/0004-offline-first-sync.md))
 
 - The device holds a SQLite copy of the user's rows (sync rules: "all rows where `user_id` = me").
 - Local writes are queued in an upload queue and applied to Postgres through a small write API (Edge Function or PostgREST, the auto-generated REST API (Representational State Transfer) Supabase exposes over Postgres) that validates the payload; RLS still applies.
-- Conflict policy: **last-write-wins per row** using `updated_at`, acceptable for a single-user app. Household sharing (later) will need per-field merging for a few tables; revisit then.
+- Conflict policy (measured in the spike): **per-field merge, last upload wins**. Edits to different fields both survive; for the same field, whichever edit reaches the server last wins, even if it was made earlier offline. Acceptable for a single-user app; household sharing (later) may need edit-timestamp checks.
+- The server can reject a queued write (constraint violation); the device then drops that row. The app validates locally first (mirroring database constraints) and surfaces any rejected upload.
+- Deletes: the app soft-deletes (`deleted_at`), sync config excludes deleted rows, and a scheduled job purges them after 30 days.
 - Files sync separately: attachment rows sync immediately with `upload_state = pending`; the binary uploads in the background and flips to `uploaded`.
 
 ## 9. Security and privacy
@@ -255,14 +257,14 @@ relo/
 |---|---|
 | Supabase | Free tier at first; Pro (~$25/month) if storage or uptime needs grow |
 | Vercel | Hobby (free) |
-| PowerSync (if chosen) | Free tier; confirm limits during the spike |
+| PowerSync | Cloud free tier (2 GB synced/month, 50 clients; deactivated after 1–2 weeks idle) or self-hosted (Apache-2.0) |
 | Claude API | Policy extraction: a few cents per document. Receipt fallback: fractions of a cent each. Monitor with per-user quotas. |
 | Apple Developer Program | $99/year, required for TestFlight and App Store |
 | Sentry | Free developer tier |
 
 ## 13. Open technical questions
 
-1. PowerSync vs. custom sync: decided by the R0 spike (ADR-0004).
+1. ~~PowerSync vs. custom sync~~: decided, PowerSync (ADR-0004).
 2. Label printing: which label stock sizes to support first (e.g. 2"×4" shipping labels vs. 1"×2.6" address labels).
 3. Does Foundation Models' on-device accuracy on crumpled receipts justify it as the default, or should cloud be the default with on-device as the offline path? Decide from the receipt test set in R1.
 4. Universal link domain: buy a short domain for labels (`relo.link/b/K-014`-style) vs. use the Vercel subdomain.

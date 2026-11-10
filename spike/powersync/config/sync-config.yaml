@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://unpkg.com/@powersync/service-sync-rules@latest/schema/sync_rules.json
+# Which rows each device downloads. Mirrors the RLS rule: a user gets only their own rows.
+# Restart the PowerSync container after editing (changes are not watched).
+config:
+  edition: 3
+
+streams:
+  user_data:
+    auto_subscribe: true
+    queries:
+      - SELECT * FROM moves WHERE user_id = auth.user_id()
+      - SELECT * FROM expenses WHERE user_id = auth.user_id()

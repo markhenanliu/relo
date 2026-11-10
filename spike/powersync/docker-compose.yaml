@@ -1,0 +1,57 @@
+# ADR-0004 sync spike: self-hosted PowerSync service next to the local Supabase stack.
+# Prerequisite: `supabase start` (creates the supabase_network_relo Docker network).
+# Run from this folder: `docker compose up -d`
+#
+# Based on PowerSync's official self-host demo (github.com/powersync-ja/self-host-demo),
+# using Postgres instead of MongoDB for PowerSync's own bucket storage.
+name: relo-powersync-spike
+
+services:
+  powersync:
+    image: journeyapps/powersync-service:1.28.1
+    command: ["start", "-r", "unified"]
+    restart: unless-stopped
+    depends_on:
+      ps-storage:
+        condition: service_healthy
+    environment:
+      POWERSYNC_CONFIG_PATH: /config/service.yaml
+      NODE_OPTIONS: --max-old-space-size=1000
+      PS_PORT: "8080"
+      # Supabase Postgres, reached by container name on the Supabase Docker network.
+      PS_DATA_SOURCE_URI: postgres://postgres:postgres@supabase_db_relo:5432/postgres
+      PS_STORAGE_SOURCE_URI: postgres://postgres:postgres@ps-storage:5432/powersync_storage
+    volumes:
+      - ./config:/config:ro
+    ports:
+      - "8080:8080"
+    networks: [default, supabase]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/probes/liveness').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+
+  # PowerSync's own bookkeeping (sync buckets, checkpoints). Not app data.
+  ps-storage:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: powersync_storage
+    volumes:
+      - ps_storage:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d powersync_storage"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+
+networks:
+  supabase:
+    name: supabase_network_relo
+    external: true
+
+volumes:
+  ps_storage:
